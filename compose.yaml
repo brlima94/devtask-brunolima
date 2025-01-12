@@ -1,0 +1,46 @@
+﻿services:
+  server:
+    image: devtask.discountservice.server
+    build:
+      context: .
+      dockerfile: DevTask.DiscountService.Server/Dockerfile
+    environment:
+      - DiscountSettings__ConnectionStrings__DiscountDb=Server=db;Database=DiscountDB;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True
+      - DiscountSettings__ConnectionStrings__Redis=redis:6379
+      - ASPNETCORE_URLS=http://+:8080
+    ports:
+      - "30175:8080"
+    depends_on:
+      - db
+      - redis
+
+  client:
+    image: devtask.discountservice.client.web
+    build:
+      context: .
+      dockerfile: DevTask.DiscountService.Client.Web/Dockerfile
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - DiscountServiceEndpoint=http://server:8080
+    ports:
+      - "30072:8080"
+    depends_on:
+      - server
+
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+
+volumes:
+  sqldata:
